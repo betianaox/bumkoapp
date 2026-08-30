@@ -6,12 +6,29 @@ import {
   signOut as fbSignOut,
 } from 'firebase/auth'
 import { getDoc, onSnapshot, setDoc } from 'firebase/firestore'
-import * as Google from 'expo-auth-session/providers/google'
-import * as WebBrowser from 'expo-web-browser'
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import { auth, SIN_CONFIG } from '../lib/firebase'
 import { barDoc, usuarioDoc } from '../lib/bar'
 
-WebBrowser.maybeCompleteAuthSession()
+/* El selector de cuentas nativo, no una pestaña del navegador: la persona ve
+   las cuentas que ya tiene en el teléfono y toca una. Además es el único
+   camino que devuelve un idToken sin vueltas, que es lo que Firebase pide.
+
+   Se configura una sola vez, al cargar el módulo. El clientId que va acá es el
+   de tipo "Web" aunque estemos en un teléfono: es el que Firebase reconoce
+   como suyo al validar el token. */
+const CLIENTE_WEB = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB
+const CLIENTE_IOS = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS
+
+if (CLIENTE_WEB) {
+  GoogleSignin.configure({
+    webClientId: CLIENTE_WEB,
+    iosClientId: CLIENTE_IOS || undefined,
+    // El correo es la identidad en toda la app: sin este permiso no hay a
+    // quién hacer entrar.
+    scopes: ['profile', 'email'],
+  })
+}
 
 /* Quién entra, a qué bar, y con qué rol. La resolución es la misma que en la
    web, porque es la misma base:
@@ -20,8 +37,8 @@ WebBrowser.maybeCompleteAuthSession()
      bares/{barId}/equipo/{email} -> su rol y si sigue habilitado
 
    Dos diferencias con la web. La primera: cómo se llega al token de Google —
-   la web abre un popup y acá se abre el navegador del sistema; lo que se le
-   entrega a Firebase es la misma credencial. La segunda: no pertenecer a
+   la web abre un popup y acá se abre el selector de cuentas del teléfono; lo
+   que se le entrega a Firebase es la misma credencial. La segunda: no pertenecer a
    ningún bar dejó de ser un error. En la web era "ese correo no está en
    ningún bar"; acá es el estado normal de quien recién instala la app, y lo
    que sigue es la pantalla de bienvenida. */
@@ -41,38 +58,6 @@ export function AuthProvider({ children }) {
   const cortar = useRef(null)
   // Marca que esta sesión ya puso al día su nombre y su foto
   const fichado = useRef(false)
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
-  })
-
-  /* Google contesta por su lado y no devolviendo el resultado de la llamada:
-     por eso la respuesta se recoge acá y no adentro de signIn. */
-  useEffect(() => {
-    if (!response) return
-
-    if (response.type === 'success') {
-      const idToken = response.params?.id_token || response.authentication?.idToken
-      if (!idToken) {
-        setError('login.error')
-        setLoading(false)
-        return
-      }
-      signInWithCredential(auth, GoogleAuthProvider.credential(idToken)).catch((e) => {
-        console.warn('[Bumko] login', e.message)
-        setError('login.error')
-        setLoading(false)
-      })
-    } else if (response.type === 'error') {
-      setError('login.error')
-      setLoading(false)
-    } else {
-      // Cancelado o cerrado: no es un error, pero hay que soltar el "cargando"
-      setLoading(false)
-    }
-  }, [response])
 
   /* Engancharse al registro propio dentro de un bar. Se escucha y no se lee
      una vez: si un admin suspende a alguien en plena noche, la app se le
@@ -199,17 +184,41 @@ export function AuthProvider({ children }) {
     setError('')
     setLoading(true)
     try {
-      await promptAsync()
+      // En Android hace falta que los servicios de Google estén al día; si no,
+      // el selector no abre y no hay forma de saber por qué.
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
+
+      const r = await GoogleSignin.signIn()
+      const idToken = r?.data?.idToken || r?.idToken
+
+      if (!idToken) {
+        // Sin token no hay nada que entregarle a Firebase. Pasa si la persona
+        // cierra el selector a mitad de camino.
+        setLoading(false)
+        return
+      }
+
+      await signInWithCredential(auth, GoogleAuthProvider.credential(idToken))
+      // El "cargando" lo apaga onAuthStateChanged cuando termina de resolver
+      // el bar: apagarlo acá dejaría ver el login un instante, ya logueado.
     } catch (e) {
-      console.warn('[Bumko] promptAsync', e.message)
+      // Cancelar no es un error: es alguien que se arrepintió.
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) {
+        setLoading(false)
+        return
+      }
+      console.warn('[Bumko] login', e.code || '', e.message)
       setError('login.error')
       setLoading(false)
     }
   }
 
-  const signOut = () => {
+  const signOut = async () => {
     cortar.current?.()
     cortar.current = null
+    // También del lado de Google: si no, la próxima vez el selector entra
+    // solo con la misma cuenta y no hay manera de cambiarla.
+    await GoogleSignin.signOut().catch(() => {})
     return fbSignOut(auth)
   }
 
@@ -229,9 +238,9 @@ export function AuthProvider({ children }) {
         // negocio. Suspendido no puede nada, sea cual sea su rol.
         isAdmin: (role === 'admin' || role === 'dev') && !pendiente,
         isDev: role === 'dev' && !pendiente,
-        // Sin los IDs de OAuth cargados no hay a dónde ir: el login lo avisa
-        // en vez de abrir un navegador que vuelve con las manos vacías.
-        listoParaEntrar: !!request,
+        // Sin el cliente de OAuth cargado no hay a dónde ir: el login lo
+        // avisa en vez de abrir un selector que vuelve con las manos vacías.
+        listoParaEntrar: !!CLIENTE_WEB,
         sinConfig: SIN_CONFIG,
       }}
     >
