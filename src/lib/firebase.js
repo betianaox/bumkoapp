@@ -34,6 +34,10 @@ export const auth = SIN_CONFIG
 export const db = SIN_CONFIG ? null : getFirestore(app)
 export const googleProvider = SIN_CONFIG ? null : new GoogleAuthProvider()
 
+/* En la web el bar va fijo: esa instalación sirve a uno solo. Acá no hay un
+   bar de la casa — cada quien crea el suyo o entra al que lo invitaron, así
+   que a qué bar entra cada persona sale siempre de usuarios/{email}. */
+
 if (SIN_CONFIG) {
   console.warn(
     '[Bumko] Falta el archivo .env con las credenciales de Firebase. ' +

@@ -35,7 +35,8 @@
         {
           "contactsPermission": "Bumko usa tus contactos solo cuando eliges a quién invitar al equipo."
         }
-      ]
+      ],
+      "expo-localization"
     ]
   }
 }
