@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# secretos: las credenciales de Firebase y la clave de servicio nunca van al repo
+.env
+service-account.json

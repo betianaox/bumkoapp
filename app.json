@@ -1,15 +1,22 @@
 {
   "expo": {
-    "name": "bumkoapp",
+    "name": "Bumko",
     "slug": "bumkoapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "scheme": "bumko",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.imago.bumko",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Bumko usa tus contactos solo cuando eliges a quién invitar al equipo. Se guarda el correo del contacto que elijas y nada más."
+      }
     },
     "android": {
+      "package": "com.imago.bumko",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -19,6 +26,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-web-browser",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Bumko usa tus contactos solo cuando eliges a quién invitar al equipo."
+        }
+      ]
+    ]
   }
 }
