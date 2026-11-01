@@ -25,13 +25,22 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#16161f",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180
+        }
+      ],
       [
         "expo-camera",
         {
@@ -42,6 +51,7 @@
       ],
       "expo-localization",
       "@react-native-google-signin/google-signin"
-    ]
+    ],
+    "owner": "imagostack"
   }
 }

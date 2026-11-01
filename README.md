@@ -81,6 +81,17 @@ npx expo run:android
 
 Las reglas de Firestore se publican desde el repo de la web (`bumko`), con `node scripts/deploy-rules.mjs`.
 
+## Publicar en Google Play
+
+Los builds se hacen con EAS (`eas.json`), con la versión de Android que lleva EAS:
+
+```bash
+npx eas-cli build -p android --profile preview      # APK para probar en un teléfono
+npx eas-cli build -p android --profile production   # .aab para Google Play
+```
+
+Las variables `EXPO_PUBLIC_*` del `.env` se cargan en EAS, en el entorno `production`, porque el `.env` no viaja con el build. Para que funcione el inicio de sesión con Google, la huella SHA-1 de la firma de EAS y la de la firma de apps de Google Play tienen que estar registradas en un cliente OAuth de tipo Android, en el mismo proyecto de Firebase.
+
 ## Licencia
 
 Ver [LICENSE](LICENSE).
