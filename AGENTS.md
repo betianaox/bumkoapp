@@ -37,9 +37,27 @@ Las pantallas no arman rutas a mano: piden `barCol` / `barDoc` de
 - `admin` — puede todo.
 - `staff` — solo la pestaña Vender. Ve las demás, apagadas.
 
-Quien entra por primera vez queda como `staff` **inactivo** hasta que un
-admin lo habilite. Las reglas de Firestore lo hacen cumplir; la interfaz solo
-lo acompaña.
+## Cómo se entra a un bar
+
+Hay dos caminos, y ninguno más en la app:
+
+- **Crear un bar**: quien lo crea queda como dueño (`ownerEmail`) y `admin`.
+- **El QR del dueño**: en Equipo se muestra el QR (lleva `bumko://unirse/CODIGO`)
+  y se comparte como imagen por WhatsApp. Quien lo escanea —o tipea el código
+  escrito en la imagen— deja un pedido en `solicitudes`, y entra como `staff`
+  **habilitado** cuando un admin lo acepta. "Cambiar el QR" genera un código
+  nuevo y el anterior deja de servir.
+
+La web conserva además las invitaciones por correo y la entrada libre; la app
+nativa ya no las ofrece, pero las reglas y los datos son los mismos.
+
+## Eliminar la cuenta
+
+Está en Ajustes (Google Play lo exige). Un miembro sale del equipo y se borra
+su índice; sus ventas quedan en el bar. El dueño borra el bar completo. Al final
+se borra la cuenta de Firebase Authentication, volviendo a pedir Google si el
+inicio de sesión no es reciente. Las reglas que lo permiten viven en
+`../bumko/firestore.rules`.
 
 ## Criterios de la interfaz
 

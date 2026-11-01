@@ -45,11 +45,15 @@ export default {
     solicitudEnviada: "Done — you asked to join {bar}. They'll let you know.",
     solicitudPendiente: 'You already asked to join {bar}. Waiting to be accepted.',
     cerrarSesion: 'Sign out',
+    escanear: "Scan the bar's QR code",
+    escanearSub: "Ask the bar's owner to show you their QR code",
+    porWhatsapp: "Did you get the QR code on WhatsApp?",
+    ingresarCodigo: "Enter the code",
   },
 
   codigo: {
     titulo: 'Bar code',
-    sub: 'Ask whoever runs the bar for it. Six characters.',
+    sub: "It's written under the QR code you were sent. Six characters.",
     campo: 'For example, BUMK4T',
     buscar: 'Search',
     noExiste: 'No bar has that code.',
@@ -59,7 +63,7 @@ export default {
 
   crearBar: {
     titulo: 'Create my bar',
-    sub: "You'll be the administrator. You can invite your team afterwards.",
+    sub: "You'll be the owner and administrator. Then you add your team with the bar's QR code.",
     campo: 'Bar name',
     crear: 'Create',
     error: "Couldn't create the bar. Please try again.",
@@ -197,7 +201,7 @@ export default {
     suspendido: 'Suspended',
     sacar: 'Remove from team',
     sacarTitulo: 'Remove {nombre}?',
-    sacarSub: 'They lose access to the bar. If they come back through the code, they wait to be enabled again.',
+    sacarSub: "They lose access to the bar. If they scan the QR code again, they have to ask to join again.",
     vacio: 'Nobody has signed in with their Google account yet.',
     tu: 'you',
     entro: 'Joined: {fecha}',
@@ -218,8 +222,35 @@ export default {
     roles: { dev: 'Dev', admin: 'Administrator', staff: 'Staff' },
     cerrarSesion: 'Sign out',
     version: 'Version {v}',
+    eliminarCuenta: "Delete my account",
+    eliminarTitulo: "Delete your account?",
+    eliminarSub: "You leave the team and your Bumko account is deleted. The sales you recorded stay with the bar. This cannot be undone.",
+    eliminarSubDueno: "You own {bar}: the whole bar will be deleted, with its products, sales, events and team. This cannot be undone.",
+    eliminarBoton: "Delete",
+    eliminarError: "The account couldn't be deleted. Try again.",
+    eliminando: "Deleting your account…",
   },
 
+
+  qr: {
+    titulo: "QR code to add people",
+    sub: "Show it or share it with whoever is going to work at the bar. Scanning it sends a request to join, which shows up below.",
+    compartir: "Share on WhatsApp",
+    compartirTitulo: "{bar} QR code",
+    escaneaCon: "Scan with the Bumko app or enter the code",
+    cambiar: "Change the QR code",
+    cambiarTitulo: "Change the QR code?",
+    cambiarSub: "A new code is generated and the old one stops working, including any photos that were shared. People already on the team stay as they are.",
+    renovado: "Done, the QR code is new. The old one no longer works.",
+  },
+
+  escaner: {
+    permisoTitulo: "Bumko needs the camera",
+    permisoSub: "Only to read the bar's QR code. The image is never stored or sent.",
+    permitir: "Allow the camera",
+    abrirAjustes: "Open the phone's settings",
+    apunta: "Point at the QR code the bar's owner is showing you",
+  },
   ayuda: {
     titulo: 'How it works',
     vender: {
@@ -251,8 +282,8 @@ export default {
       d: 'Staff can only sell. Admin can do everything. Dev can do everything too, but whatever they record stays out of the reports and the cash, so you can test without dirtying the numbers.',
     },
     invitar: {
-      t: 'Adding people',
-      d: 'From Team you can invite someone by picking them from your contacts, or give them the bar code so they can ask to join.',
+      t: "Adding people",
+      d: "From Team, show the bar's QR code or share it on WhatsApp. Whoever scans it asks to join, and gets in when you accept. If a photo of the QR code went too far, change it: the old one stops working.",
     },
   },
 }

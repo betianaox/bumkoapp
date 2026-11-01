@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import {
+  deleteUser,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   signInWithCredential,
   GoogleAuthProvider,
   signOut as fbSignOut,
@@ -9,6 +11,8 @@ import { getDoc, onSnapshot, setDoc } from 'firebase/firestore'
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import { auth, SIN_CONFIG } from '../lib/firebase'
 import { barDoc, usuarioDoc } from '../lib/bar'
+import { borrarDatosDeCuenta } from '../lib/cuenta'
+import { useBar } from '../lib/store'
 
 /* El selector de cuentas nativo, no una pestaña del navegador: la persona ve
    las cuentas que ya tiene en el teléfono y toca una. Además es el único
@@ -222,6 +226,36 @@ export function AuthProvider({ children }) {
     return fbSignOut(auth)
   }
 
+  /* Eliminar la cuenta: primero los datos en Firestore, después la cuenta de
+     Firebase. Firebase solo deja borrar una cuenta con un inicio de sesión
+     reciente; si pasó mucho tiempo, se vuelve a abrir el selector de Google
+     para confirmar quién es y se reintenta. */
+  const eliminarCuenta = async () => {
+    const actual = auth?.currentUser
+    if (!actual) return { borroBar: false }
+
+    cortar.current?.()
+    cortar.current = null
+    useBar.getState().desconectar()
+
+    const resultado = await borrarDatosDeCuenta({ barId, email: actual.email })
+
+    try {
+      await deleteUser(actual)
+    } catch (e) {
+      if (e.code !== 'auth/requires-recent-login') throw e
+      const r = await GoogleSignin.signIn()
+      const idToken = r?.data?.idToken || r?.idToken
+      if (!idToken) throw e
+      await reauthenticateWithCredential(actual, GoogleAuthProvider.credential(idToken))
+      await deleteUser(actual)
+    }
+
+    await GoogleSignin.revokeAccess().catch(() => {})
+    await GoogleSignin.signOut().catch(() => {})
+    return resultado
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -233,6 +267,7 @@ export function AuthProvider({ children }) {
         error,
         signIn,
         signOut,
+        eliminarCuenta,
         resolverBar,
         // dev puede lo mismo que admin: es un rol de mantenimiento, no de
         // negocio. Suspendido no puede nada, sea cual sea su rol.

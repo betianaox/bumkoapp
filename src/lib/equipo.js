@@ -7,6 +7,7 @@ import {
   getDocs,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { barCol, barDoc, usuarioDoc } from './bar'
@@ -172,8 +173,9 @@ export async function pedirEntrar({ barId, user }) {
 
 export const solicitudesDe = (barId) => barCol(barId, 'solicitudes')
 
-/* Aceptar a quien pidió entrar. Acá sí entra apagado: llegó con un código que
-   pudo haber circulado por cualquier lado, así que lo mira un admin antes. */
+/* Aceptar a quien pidió entrar. Entra habilitado: el pedido llega porque el
+   dueño le mostró o le mandó el QR, y aceptarlo ya es mirarlo. Hacerlo pasar
+   después por "habilitar" era pedirle dos veces lo mismo a la misma persona. */
 export async function aceptarSolicitud({ barId, solicitud }) {
   const email = solicitud.email.toLowerCase()
 
@@ -182,7 +184,7 @@ export async function aceptarSolicitud({ barId, solicitud }) {
     name: solicitud.name || email,
     photo: solicitud.photo || null,
     role: 'staff',
-    active: false,
+    active: true,
     createdAt: serverTimestamp(),
   })
 
@@ -197,4 +199,42 @@ export const rechazarSolicitud = ({ barId, solicitud }) =>
 export async function misInvitaciones(email) {
   const snap = await getDocs(invitacionesDe(email))
   return snap.docs.map((d) => ({ id: d.id, barId: d.id, ...d.data() }))
+}
+
+/* El QR del bar. Lleva un link y no el código solo: si alguien lo escanea con
+   la cámara del teléfono en vez de con la app, el link abre Bumko directamente
+   en el pedido de entrada. */
+export const linkDeIngreso = (codigo) => `bumko://unirse/${codigo}`
+
+/* Lo que sea que haya leído la cámara o escrito la persona, convertido en un
+   código. Acepta el link del QR o el código suelto, con espacios o en
+   minúscula, porque se dicta en voz alta y se tipea apurado. */
+export function codigoDesde(texto) {
+  const limpio = (texto || '').trim()
+  const enLink = limpio.match(/unirse\/([A-Za-z0-9]{6})/)
+  if (enLink) return enLink[1].toUpperCase()
+  const suelto = limpio.replace(/\s+/g, '').toUpperCase()
+  return /^[A-Z0-9]{6}$/.test(suelto) ? suelto : null
+}
+
+/* Cambiar el QR: un código nuevo y el anterior deja de servir. Es para cuando
+   una foto del QR circuló donde no tenía que circular.
+
+   El orden importa: primero se escribe el código nuevo, después se apunta el
+   bar a él y recién al final se borra el viejo. Si algo falla a mitad de
+   camino, el bar nunca queda sin un código que funcione. */
+export async function cambiarCodigo({ barId, barNombre, codigoViejo }) {
+  let codigo = generarCodigo()
+  for (let i = 0; i < 5; i++) {
+    const tomado = await getDoc(codigoDoc(codigo))
+    if (!tomado.exists()) break
+    codigo = generarCodigo()
+  }
+
+  await setDoc(codigoDoc(codigo), { barId, barNombre: barNombre || '' })
+  await updateDoc(doc(db, 'bares', barId), { codigo })
+  if (codigoViejo && codigoViejo !== codigo) {
+    await deleteDoc(codigoDoc(codigoViejo)).catch(() => {})
+  }
+  return codigo
 }

@@ -10,19 +10,22 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.imago.bumko",
-      "infoPlist": {
-        "NSContactsUsageDescription": "Bumko usa tus contactos solo cuando eliges a quién invitar al equipo. Se guarda el correo del contacto que elijas y nada más."
-      }
+      "bundleIdentifier": "com.imagostack.bumko"
     },
     "android": {
-      "package": "com.imago.bumko",
+      "package": "com.imagostack.bumko",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#16161f",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,9 +33,11 @@
     "plugins": [
       "expo-router",
       [
-        "expo-contacts",
+        "expo-camera",
         {
-          "contactsPermission": "Bumko usa tus contactos solo cuando eliges a quién invitar al equipo."
+          "cameraPermission": "Bumko usa la cámara solo para leer el QR del bar al pedir entrar a un equipo. La imagen no se guarda ni se envía.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       "expo-localization",

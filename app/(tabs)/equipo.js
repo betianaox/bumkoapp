@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, Share, Switch, Text, View } from 'react-native'
-import * as Contacts from 'expo-contacts'
-import { deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore'
-import { db } from '../../src/lib/firebase'
+import { Pressable, ScrollView, Switch, Text, View } from 'react-native'
+import { deleteDoc, onSnapshot, updateDoc } from 'firebase/firestore'
 import { useAuth } from '../../src/context/auth'
 import { useTema } from '../../src/context/tema'
 import { useT } from '../../src/i18n'
@@ -11,17 +9,16 @@ import { barDoc, usuarioDoc } from '../../src/lib/bar'
 import { fechaCorta } from '../../src/lib/formato'
 import {
   aceptarSolicitud,
-  cancelarInvitacion,
-  invitacionesDelBar,
-  invitar,
+  cambiarCodigo,
   rechazarSolicitud,
   solicitudesDe,
 } from '../../src/lib/equipo'
 import Guardia from '../../src/components/Guardia'
 import Dialogo from '../../src/components/Dialogo'
 import Avatar from '../../src/components/Avatar'
+import QrDelBar from '../../src/components/QrDelBar'
 import { Boton, BotonIcono, Etiqueta, Tarjeta, Titulo, Vacio } from '../../src/components/ui'
-import { PlusIcon, TagIcon, TrashIcon } from '../../src/components/icons'
+import { RefreshIcon, TrashIcon } from '../../src/components/icons'
 
 /* dev es un rol de mantenimiento: puede lo mismo que un admin, pero lo que
    registra queda afuera de los reportes y de la caja de la noche. Solo un dev
@@ -45,86 +42,35 @@ function PantallaEquipo() {
   const bar = useBar((e) => e.bar)
 
   const [solicitudes, setSolicitudes] = useState([])
-  const [invitaciones, setInvitaciones] = useState([])
   const [sacar, setSacar] = useState(null)
-  const [invitando, setInvitando] = useState(null)   // { nombre, correo }
+  const [renovar, setRenovar] = useState(false)
   const [aviso, setAviso] = useState('')
 
-  /* Estas dos escuchas no van al store global: solo sirven en esta pantalla y
-     solo las puede leer un admin. Cargarlas al entrar a la app le sumaría dos
-     consultas a todo el mundo, incluido el staff, que no las puede ni ver. */
+  /* Esta escucha no va al store global: solo sirve en esta pantalla y solo la
+     puede leer un admin. Cargarla al entrar a la app le sumaría una consulta a
+     todo el mundo, incluido el staff, que no la puede ni ver. */
   useEffect(() => {
     if (!barId) return
-    const a = onSnapshot(
+    return onSnapshot(
       solicitudesDe(barId),
       (s) => setSolicitudes(s.docs.map((d) => ({ id: d.id, ...d.data() }))),
       () => {},
     )
-    const b = onSnapshot(
-      invitacionesDelBar(barId),
-      (s) => setInvitaciones(s.docs.map((d) => ({ id: d.id, ...d.data() }))),
-      () => {},
-    )
-    return () => { a(); b() }
   }, [barId])
 
-  /* Invitar desde la agenda. Se abre el selector del sistema y no la lista
-     entera: así vuelve un solo contacto —el que la persona eligió— y en iOS ni
-     siquiera hace falta pedir permiso para leer los contactos. No se sube
-     nada: de todo el contacto nos quedamos con el correo, y ni eso sin que lo
-     confirmen en el paso siguiente. */
-  const elegirContacto = async () => {
+  /* Un código nuevo: el QR anterior, y cualquier foto que haya circulado de
+     él, deja de servir. Quien ya está en el equipo no se entera: sigue igual. */
+  const confirmarRenovar = async () => {
+    setRenovar(false)
     setAviso('')
     try {
-      const contacto = await Contacts.presentContactPickerAsync()
-      if (!contacto) return
-
-      const correo = contacto.emails?.[0]?.email
-      if (!correo) {
-        setAviso(t('equipo.sinCorreo'))
-        return
-      }
-      setInvitando({ nombre: contacto.name || correo, correo })
+      await cambiarCodigo({ barId, barNombre: bar?.name, codigoViejo: bar?.codigo })
+      setAviso(t('qr.renovado'))
     } catch (e) {
-      console.warn('[Bumko] contactos', e.message)
-      setAviso(t('equipo.permisoContactos'))
-    }
-  }
-
-  /* El correo guardado en la agenda puede no ser el de su cuenta de Google, y
-     una invitación al correo equivocado no falla: simplemente no llega nunca.
-     Por eso el último paso es editable. */
-  const confirmarInvitacion = async (correo) => {
-    const destino = (correo || '').trim().toLowerCase()
-    setInvitando(null)
-    if (!destino) return
-
-    if (equipo.some((m) => m.id === destino)) {
-      setAviso(t('equipo.yaEsta', { nombre: destino }))
-      return
-    }
-    if (invitaciones.some((i) => i.id === destino)) {
-      setAviso(t('equipo.yaInvitado'))
-      return
-    }
-
-    try {
-      await invitar({ barId, barNombre: bar?.name, email: destino, invitadoPor: user })
-      setAviso(t('equipo.invitada', { correo: destino }))
-    } catch (e) {
-      console.warn('[Bumko] invitar', e.message)
+      console.warn('[Bumko] cambiar código', e.message)
       setAviso(t('crearBar.error'))
     }
   }
-
-  const compartirCodigo = () => {
-    if (!bar?.codigo) return
-    Share.share({
-      message: `${bar.name || 'Bumko'} — ${t('equipo.codigoDelBar')}: ${bar.codigo}`,
-    }).catch(() => {})
-  }
-
-  const alternarPuerta = () => updateDoc(doc(db, 'bares', barId), { autoJoin: !bar?.autoJoin })
 
   const cambiarRol = (m, rol) => {
     if (m.role === rol) return
@@ -163,51 +109,17 @@ function PantallaEquipo() {
       style={{ flex: 1, backgroundColor: tema.bg }}
       contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
     >
-      {/* El código y la puerta: las dos formas de que llegue gente nueva sin
-          que un admin la elija de a una. */}
+      {/* La única puerta de entrada: el QR que muestra o manda el dueño. Quien
+          lo escanea pide entrar, y su pedido aparece acá abajo. */}
       <Tarjeta style={{ marginTop: 4 }}>
-        <Etiqueta>{t('equipo.codigoDelBar')}</Etiqueta>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Text
-            style={{ color: tema.text, fontSize: 26, fontWeight: '800', letterSpacing: 3, flex: 1 }}
-          >
-            {bar?.codigo || '——————'}
-          </Text>
-          <BotonIcono icono={TagIcon} etiqueta={t('equipo.compartir')} onPress={compartirCodigo} />
-        </View>
-
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 14,
-            marginTop: 18,
-            paddingTop: 16,
-            borderTopWidth: 1,
-            borderTopColor: tema.line,
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: tema.text, fontSize: 15, fontWeight: '700' }}>
-              {t('equipo.entradaLibre')}
-            </Text>
-            <Text style={{ color: tema.textFaint, fontSize: 13, marginTop: 2, lineHeight: 18 }}>
-              {bar?.autoJoin ? t('equipo.entradaLibreOn') : t('equipo.entradaLibreOff')}
-            </Text>
-          </View>
-          <Switch
-            value={!!bar?.autoJoin}
-            onValueChange={alternarPuerta}
-            trackColor={{ true: tema.green, false: tema.surface3 }}
-          />
-        </View>
-
-        <Boton icono={PlusIcon} onPress={elegirContacto} style={{ marginTop: 18 }}>
-          {t('equipo.invitar')}
-        </Boton>
-        <Text style={{ color: tema.textFaint, fontSize: 12, textAlign: 'center', marginTop: 8 }}>
-          {t('equipo.invitarSub')}
+        <Etiqueta>{t('qr.titulo')}</Etiqueta>
+        <Text style={{ color: tema.textDim, fontSize: 14, lineHeight: 20, marginBottom: 14 }}>
+          {t('qr.sub')}
         </Text>
+        <QrDelBar bar={bar} />
+        <Boton tipo="fantasma" icono={RefreshIcon} onPress={() => setRenovar(true)} style={{ marginTop: 10 }}>
+          {t('qr.cambiar')}
+        </Boton>
       </Tarjeta>
 
       {aviso ? (
@@ -216,7 +128,7 @@ function PantallaEquipo() {
         </Text>
       ) : null}
 
-      {/* Quien llegó por el código y está esperando que lo miren */}
+      {/* Quien escaneó el QR y está esperando que lo acepten */}
       {solicitudes.length > 0 ? (
         <>
           <Titulo>{t('equipo.solicitudes', { n: solicitudes.length })}</Titulo>
@@ -249,38 +161,6 @@ function PantallaEquipo() {
                 </Boton>
               </View>
             </Tarjeta>
-          ))}
-        </>
-      ) : null}
-
-      {/* A quién se invitó y todavía no entró */}
-      {invitaciones.length > 0 ? (
-        <>
-          <Titulo>{t('equipo.pendientes', { n: invitaciones.length })}</Titulo>
-          {invitaciones.map((i) => (
-            <View
-              key={i.id}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-                backgroundColor: tema.surface,
-                borderRadius: tema.radio.md,
-                padding: 14,
-                marginBottom: 8,
-              }}
-            >
-              <Avatar name={i.email} email={i.email} size={34} />
-              <Text numberOfLines={1} style={{ color: tema.textDim, fontSize: 14, flex: 1 }}>
-                {i.email}
-              </Text>
-              <BotonIcono
-                icono={TrashIcon}
-                color={tema.red}
-                etiqueta={t('equipo.cancelarInvitacion')}
-                onPress={() => cancelarInvitacion(i.id, barId)}
-              />
-            </View>
           ))}
         </>
       ) : null}
@@ -383,18 +263,13 @@ function PantallaEquipo() {
 
       {equipo.length === 0 ? <Vacio>{t('equipo.vacio')}</Vacio> : null}
 
-      {invitando && (
+      {renovar && (
         <Dialogo
-          titulo={t('equipo.invitarTitulo', { nombre: invitando.nombre })}
-          sub={t('equipo.invitarSubCorreo')}
-          input={{
-            initial: invitando.correo,
-            keyboardType: 'email-address',
-            autoCapitalize: 'none',
-          }}
-          confirmar={t('equipo.invitarBoton')}
-          onConfirm={confirmarInvitacion}
-          onClose={() => setInvitando(null)}
+          titulo={t('qr.cambiarTitulo')}
+          sub={t('qr.cambiarSub')}
+          confirmar={t('qr.cambiar')}
+          onConfirm={confirmarRenovar}
+          onClose={() => setRenovar(false)}
         />
       )}
 

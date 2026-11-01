@@ -159,3 +159,30 @@ export const PencilIcon = (p) => (
     <Path d="M14.5 6.5L17.5 9.5" />
   </Icono>
 )
+
+export const ShareIcon = (p) => (
+  <Icono {...p}>
+    <Circle cx="18" cy="5" r="2.5" />
+    <Circle cx="6" cy="12" r="2.5" />
+    <Circle cx="18" cy="19" r="2.5" />
+    <Path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4" />
+  </Icono>
+)
+
+export const QrIcon = (p) => (
+  <Icono {...p}>
+    <Rect x="3" y="3" width="7" height="7" rx="1" />
+    <Rect x="14" y="3" width="7" height="7" rx="1" />
+    <Rect x="3" y="14" width="7" height="7" rx="1" />
+    <Path d="M14 14h3v3M21 14v.01M14 21h3M20 18v3M17 17v4" />
+  </Icono>
+)
+
+export const RefreshIcon = (p) => (
+  <Icono {...p}>
+    <Path d="M20 11a8 8 0 00-14.3-4.9L4 8" />
+    <Path d="M4 4v4h4" />
+    <Path d="M4 13a8 8 0 0014.3 4.9L20 16" />
+    <Path d="M20 20v-4h-4" />
+  </Icono>
+)

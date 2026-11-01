@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, Share, Text, View } from 'react-native'
+import { useState } from 'react'
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import Constants from 'expo-constants'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -7,8 +8,9 @@ import { useAuth } from '../src/context/auth'
 import { IDIOMAS, useIdioma, useT } from '../src/i18n'
 import { useBar } from '../src/lib/store'
 import Avatar from '../src/components/Avatar'
+import Dialogo from '../src/components/Dialogo'
 import { Boton, Etiqueta, Tarjeta } from '../src/components/ui'
-import { CloseIcon, MoonIcon, PowerIcon, SunIcon, TagIcon } from '../src/components/icons'
+import { CloseIcon, MoonIcon, PowerIcon, SunIcon, TrashIcon } from '../src/components/icons'
 
 /* Los ajustes y la ayuda en la misma pantalla, como en casi cualquier app: son
    las dos cosas que se buscan una vez y no se vuelven a mirar, y separarlas en
@@ -21,17 +23,42 @@ export default function Ajustes() {
   const t = useT()
   const { modo, alternar } = useTemaCompleto()
   const { idioma, elegir } = useIdioma()
-  const { user, role, signOut } = useAuth()
+  const { user, role, signOut, eliminarCuenta } = useAuth()
   const bar = useBar((e) => e.bar)
   const inset = useSafeAreaInsets()
 
   const version = Constants.expoConfig?.version || '1.0.0'
 
-  const compartirCodigo = () => {
-    if (!bar?.codigo) return
-    Share.share({
-      message: `${bar.name || 'Bumko'} — ${t('ajustes.codigo')}: ${bar.codigo}`,
-    }).catch(() => {})
+  const [borrar, setBorrar] = useState(false)
+  const [borrando, setBorrando] = useState(false)
+  const [error, setError] = useState('')
+
+  // El dueño se lleva el bar entero; cualquier otro, solo su cuenta
+  const esDueno =
+    !!bar?.ownerEmail && bar.ownerEmail.toLowerCase() === (user?.email || '').toLowerCase()
+
+  /* Al terminar, la sesión desaparece sola y la app vuelve al login: no hay
+     que navegar a ningún lado. */
+  const confirmarBorrado = async () => {
+    setBorrar(false)
+    setError('')
+    setBorrando(true)
+    try {
+      await eliminarCuenta()
+    } catch (e) {
+      console.warn('[Bumko] eliminar cuenta', e.code || '', e.message)
+      setError(t('ajustes.eliminarError'))
+      setBorrando(false)
+    }
+  }
+
+  if (borrando) {
+    return (
+      <View style={{ flex: 1, backgroundColor: tema.bg, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+        <ActivityIndicator color={tema.textFaint} />
+        <Text style={{ color: tema.textDim, fontSize: 15 }}>{t('ajustes.eliminando')}</Text>
+      </View>
+    )
   }
 
   const temas = [
@@ -94,29 +121,6 @@ export default function Ajustes() {
             <Text style={{ color: tema.text, fontSize: 19, fontWeight: '700' }}>
               {bar.name || 'Bumko'}
             </Text>
-            {bar.codigo ? (
-              <>
-                <Text
-                  style={{
-                    color: tema.textDim,
-                    fontSize: 22,
-                    fontWeight: '800',
-                    letterSpacing: 3,
-                    marginTop: 8,
-                  }}
-                >
-                  {bar.codigo}
-                </Text>
-                <Boton
-                  tipo="fantasma"
-                  icono={TagIcon}
-                  onPress={compartirCodigo}
-                  style={{ marginTop: 14 }}
-                >
-                  {t('ajustes.compartirCodigo')}
-                </Boton>
-              </>
-            ) : null}
           </Tarjeta>
         </>
       ) : null}
@@ -161,11 +165,35 @@ export default function Ajustes() {
         {t('ajustes.cerrarSesion')}
       </Boton>
 
+      {/* Lo exige Google Play: quien creó una cuenta tiene que poder borrarla
+          desde la app. Queda al final y en texto, lejos de lo que se toca
+          seguido, para que nadie la apriete sin querer. */}
+      <Pressable onPress={() => setBorrar(true)} hitSlop={8} style={{ marginTop: 22, alignSelf: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <TrashIcon size={15} color={tema.red} />
+          <Text style={{ color: tema.red, fontSize: 14, fontWeight: '600' }}>{t('ajustes.eliminarCuenta')}</Text>
+        </View>
+      </Pressable>
+      {error ? (
+        <Text style={{ color: tema.redInk, fontSize: 13, textAlign: 'center', marginTop: 10 }}>{error}</Text>
+      ) : null}
+
       <Text
         style={{ color: tema.textFaint, fontSize: 12, textAlign: 'center', marginTop: 20 }}
       >
         {t('ajustes.version', { v: version })}
       </Text>
+
+      {borrar && (
+        <Dialogo
+          titulo={t('ajustes.eliminarTitulo')}
+          sub={esDueno ? t('ajustes.eliminarSubDueno', { bar: bar?.name || 'Bumko' }) : t('ajustes.eliminarSub')}
+          confirmar={t('ajustes.eliminarBoton')}
+          peligro
+          onConfirm={confirmarBorrado}
+          onClose={() => setBorrar(false)}
+        />
+      )}
     </ScrollView>
   )
 }

@@ -47,11 +47,15 @@ export default {
     solicitudEnviada: 'Listo, ya pediste entrar a {bar}. Te avisan cuando te acepten.',
     solicitudPendiente: 'Ya pediste entrar a {bar}. Esperando que te acepten.',
     cerrarSesion: 'Cerrar sesión',
+    escanear: "Escanear el QR del bar",
+    escanearSub: "Pídele al dueño del bar que te muestre su QR",
+    porWhatsapp: "¿Te mandaron el QR por WhatsApp?",
+    ingresarCodigo: "Ingresa el código",
   },
 
   codigo: {
     titulo: 'Código del bar',
-    sub: 'Pídeselo a quien administra el bar. Son seis caracteres.',
+    sub: "Está escrito debajo del QR que te mandaron. Son seis caracteres.",
     campo: 'Por ejemplo, BUMK4T',
     buscar: 'Buscar',
     noExiste: 'No hay ningún bar con ese código.',
@@ -61,7 +65,7 @@ export default {
 
   crearBar: {
     titulo: 'Crear mi bar',
-    sub: 'Vas a quedar como administrador. Después puedes invitar a tu equipo.',
+    sub: "Vas a quedar como dueño y administrador. Después sumas a tu equipo con el QR del bar.",
     campo: 'Nombre del bar',
     crear: 'Crear',
     error: 'No se pudo crear el bar. Intenta de nuevo.',
@@ -199,7 +203,7 @@ export default {
     suspendido: 'Suspendido',
     sacar: 'Sacar del equipo',
     sacarTitulo: '¿Sacar a {nombre}?',
-    sacarSub: 'Pierde el acceso al bar. Si vuelve a entrar por el código, queda otra vez a la espera de que lo habiliten.',
+    sacarSub: "Pierde el acceso al bar. Si vuelve a escanear el QR, tiene que pedir entrar de nuevo.",
     vacio: 'Todavía no entró nadie con su cuenta de Google.',
     tu: 'tú',
     entro: 'Entró: {fecha}',
@@ -220,8 +224,35 @@ export default {
     roles: { dev: 'Dev', admin: 'Administrador', staff: 'Staff' },
     cerrarSesion: 'Cerrar sesión',
     version: 'Versión {v}',
+    eliminarCuenta: "Eliminar mi cuenta",
+    eliminarTitulo: "¿Eliminar tu cuenta?",
+    eliminarSub: "Sales del equipo y se borra tu cuenta de Bumko. Las ventas que registraste quedan en el bar. Esta acción no se puede deshacer.",
+    eliminarSubDueno: "Eres el dueño de {bar}: se va a borrar el bar completo, con sus productos, ventas, eventos y equipo. Esta acción no se puede deshacer.",
+    eliminarBoton: "Eliminar",
+    eliminarError: "No se pudo eliminar la cuenta. Intenta de nuevo.",
+    eliminando: "Eliminando tu cuenta…",
   },
 
+
+  qr: {
+    titulo: "QR para sumar gente",
+    sub: "Muéstralo o compártelo con quien va a trabajar en el bar. Al escanearlo pide entrar, y su pedido aparece abajo.",
+    compartir: "Compartir por WhatsApp",
+    compartirTitulo: "QR de {bar}",
+    escaneaCon: "Escanea con la app Bumko o ingresa el código",
+    cambiar: "Cambiar el QR",
+    cambiarTitulo: "¿Cambiar el QR?",
+    cambiarSub: "Se genera un código nuevo y el anterior deja de servir, incluidas las fotos que se hayan compartido. Quien ya está en el equipo sigue igual.",
+    renovado: "Listo, el QR es nuevo. El anterior ya no sirve.",
+  },
+
+  escaner: {
+    permisoTitulo: "Bumko necesita la cámara",
+    permisoSub: "Solo para leer el QR del bar. La imagen no se guarda ni se envía.",
+    permitir: "Permitir la cámara",
+    abrirAjustes: "Abrir los ajustes del teléfono",
+    apunta: "Apunta al QR que te muestra el dueño del bar",
+  },
   ayuda: {
     titulo: 'Cómo se usa',
     vender: {
@@ -253,8 +284,8 @@ export default {
       d: 'Staff solo puede vender. Admin puede todo. Dev puede todo pero lo que registra queda afuera de los reportes y de la caja, para poder probar sin ensuciar los números.',
     },
     invitar: {
-      t: 'Sumar gente',
-      d: 'Desde Equipo puedes invitar a alguien eligiéndolo de tus contactos, o pasarle el código del bar para que pida entrar.',
+      t: "Sumar gente",
+      d: "Desde Equipo muestra el QR del bar o compártelo por WhatsApp. Quien lo escanea pide entrar, y entra cuando lo aceptas. Si una foto del QR circuló de más, cámbialo: el anterior deja de servir.",
     },
   },
 }
