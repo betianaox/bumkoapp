@@ -10,7 +10,7 @@ https://docs.expo.dev/versions/v57.0.0/ antes de escribir código.
 
 ## De dónde viene esto
 
-Existe ya una versión web en `../Stokko` (Vite + React, desplegada en
+Existe ya una versión web en `../bumko` (Vite + React, desplegada en
 bumko.vercel.app). **Las dos apuntan al mismo proyecto de Firebase y a la
 misma base**, y están pensadas para convivir: la misma persona puede vender
 desde el celular mientras otra mira los reportes en la compu.
