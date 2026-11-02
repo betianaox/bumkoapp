@@ -83,6 +83,8 @@ Las reglas de Firestore se publican desde el repo de la web (`bumko`), con `node
 
 ## Publicar en Google Play
 
+Los pasos completos y los textos de la ficha están en [`docs/google-play.md`](docs/google-play.md).
+
 Los builds se hacen con EAS (`eas.json`), con la versión de Android que lleva EAS:
 
 ```bash
