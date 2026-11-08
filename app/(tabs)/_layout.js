@@ -41,6 +41,8 @@ const Trabada = (props) => (
   </View>
 )
 
+const PestanaBoton = (props) => <Pressable {...props} />
+
 export default function TabsLayout() {
   const tema = useTema()
   const t = useT()
@@ -51,8 +53,11 @@ export default function TabsLayout() {
   )
 
   // Suspendido no puede ni vender; al staff solo se le traban las de administrar.
+  // tabBarButton tiene que ser una función que devuelve el botón: las pestañas
+  // la llaman como `button(props)`, y Pressable es un componente memoizado (un
+  // objeto), no una función.
   const boton = (soloAdmin) =>
-    pendiente || (soloAdmin && !isAdmin) ? Trabada : Pressable
+    pendiente || (soloAdmin && !isAdmin) ? Trabada : PestanaBoton
 
   return (
     <View style={{ flex: 1, backgroundColor: tema.bg }}>
